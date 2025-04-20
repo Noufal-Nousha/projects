@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Virtual Mouse</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            width: 100%;
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            padding: 20px 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .subtitle {
+            margin-top: 8px;
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
+        }
+        .video-section {
+            flex: 1;
+            min-width: 320px;
+        }
+        .interactive-section {
+            flex: 1;
+            min-width: 320px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background-color: #000;
+        }
+        #video {
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1); /* Mirror video */
+            object-fit: cover;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1); /* Mirror canvas */
+        }
+        .cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+        }
+        .cursor-outer {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(75, 108, 183, 0.8);
+            border-radius: 50%;
+            transition: all 0.08s ease-out;
+        }
+        .cursor-inner {
+            width: 12px;
+            height: 12px;
+            background-color: rgba(75, 108, 183, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .cursor.clicking .cursor-outer {
+            transform: scale(0.8);
+            background-color: rgba(75, 108, 183, 0.2);
+        }
+        .cursor.clicking .cursor-inner {
+            transform: translate(-50%, -50%) scale(1.5);
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        .settings {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .settings-title {
+            font-size: 1.4rem;
+            margin-top: 0;
+            color: #182848;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4b6cb7;
+            padding-bottom: 10px;
+        }
+        .setting-group {
+            margin-bottom: 15px;
+        }
+        .setting-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+            color: #333;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 5px;
+            background: #ddd;
+            outline: none;
+            border-radius: 5px;
+            accent-color: #4b6cb7;
+        }
+        .slider-value {
+            width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: #4b6cb7;
+        }
+        .interactive-area {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            height: auto;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+        .test-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+        }
+        .test-button {
+            padding: 15px 25px;
+            background: linear-gradient(45deg, #FF416C 0%, #FF4B2B 100%);
+            color: white;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 120px;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(255, 75, 43, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+        .test-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 75, 43, 0.4);
+        }
+        .test-button.clicked {
+            background: linear-gradient(45deg, #11998e 0%, #38ef7d 100%);
+            box-shadow: 0 5px 15px rgba(56, 239, 125, 0.3);
+            transform: scale(0.95);
+        }
+        .colorful-button {
+            padding: 15px 25px;
+            color: white;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 120px;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .blue { background: linear-gradient(45deg, #2193b0 0%, #6dd5ed 100%); }
+        .purple { background: linear-gradient(45deg, #834d9b 0%, #d04ed6 100%); }
+        .green { background: linear-gradient(45deg, #134E5E 0%, #71B280 100%); }
+        .orange { background: linear-gradient(45deg, #f12711 0%, #f5af19 100%); }
+        
+        .colorful-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        .status {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .status-title {
+            font-size: 1.4rem;
+            margin-top: 0;
+            color: #182848;
+            margin-bottom: 10px;
+        }
+        .status-message {
+            color: #555;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        .debug-info {
+            font-family: monospace;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #333;
+            white-space: pre-wrap;
+        }
+        .gesture-indicator {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .gesture-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-direction: column;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .gesture-box img {
+            max-width: 50px;
+            max-height: 50px;
+            margin-bottom: 5px;
+        }
+        .gesture-move {
+            background: linear-gradient(45deg, #2193b0 0%, #6dd5ed 100%);
+        }
+        .gesture-click {
+            background: linear-gradient(45deg, #834d9b 0%, #d04ed6 100%);
+        }
+        .gesture-active {
+            box-shadow: 0 0 0 3px white, 0 0 0 6px #4b6cb7;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(75, 108, 183, 0.7), 0 0 0 0 rgba(75, 108, 183, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(75, 108, 183, 0), 0 0 0 15px rgba(75, 108, 183, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(75, 108, 183, 0), 0 0 0 0 rgba(75, 108, 183, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Smart Virtual Mouse</h1>
+            <p class="subtitle">Control your cursor with hand gestures</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="startButton">Start Camera</button>
+                    <button id="calibrateButton">Calibrate</button>
+                </div>
+                
+                <div class="settings">
+                    <h3 class="settings-title">Settings</h3>
+                    <div class="setting-group">
+                        <label class="setting-label">Cursor Smoothing</label>
+                        <div class="slider-container">
+                            <input type="range" id="smoothingSlider" min="1" max="10" value="3">
+                            <span class="slider-value" id="smoothingValue">0.3</span>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label class="setting-label">Pinch Sensitivity</label>
+                        <div class="slider-container">
+                            <input type="range" id="pinchSlider" min="3" max="15" value="8">
+                            <span class="slider-value" id="pinchValue">0.08</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="status">
+                    <h3 class="status-title" id="statusTitle">Status: Not Started</h3>
+                    <p class="status-message" id="statusMessage">Click "Start Camera" to begin tracking.</p>
+                    <div class="gesture-indicator">
+                        <div class="gesture-box gesture-move" id="moveGesture">
+                            MOVE
+                        </div>
+                        <div class="gesture-box gesture-click" id="clickGesture">
+                            CLICK
+                        </div>
+                    </div>
+                    <div class="debug-info" id="debug">No hand detected yet</div>
+                </div>
+            </div>
+            
+            <div class="interactive-section">
+                <h3 class="settings-title">Test Your Virtual Mouse</h3>
+                <div class="interactive-area">
+                    <div class="test-row">
+                        <div class="test-button" id="button1">Click Me!</div>
+                        <div class="test-button" id="button2">Click Me Too!</div>
+                    </div>
+                    
+                    <div class="test-row">
+                        <div class="colorful-button blue" id="button3">Blue Button</div>
+                        <div class="colorful-button purple" id="button4">Purple Button</div>
+                    </div>
+                    
+                    <div class="test-row">
+                        <div class="colorful-button green" id="button5">Green Button</div>
+                        <div class="colorful-button orange" id="button6">Orange Button</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="cursor" id="cursor">
+            <div class="cursor-outer"></div>
+            <div class="cursor-inner"></div>
+        </div>
+    </div>
+    
+    <!-- Load MediaPipe scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const cursor = document.getElementById('cursor');
+            const startButton = document.getElementById('startButton');
+            const calibrateButton = document.getElementById('calibrateButton');
+            const debugElement = document.getElementById('debug');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMessage = document.getElementById('statusMessage');
+            const moveGesture = document.getElementById('moveGesture');
+            const clickGesture = document.getElementById('clickGesture');
+            
+            // Test buttons
+            const testButtons = [
+                document.getElementById('button1'),
+                document.getElementById('button2'),
+                document.getElementById('button3'),
+                document.getElementById('button4'),
+                document.getElementById('button5'),
+                document.getElementById('button6')
+            ];
+            
+            // Settings
+            const smoothingSlider = document.getElementById('smoothingSlider');
+            const smoothingValue = document.getElementById('smoothingValue');
+            const pinchSlider = document.getElementById('pinchSlider');
+            const pinchValue = document.getElementById('pinchValue');
+            
+            // Set canvas dimensions
+            function updateCanvasSize() {
+                const container = canvas.parentElement;
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
+            }
+            updateCanvasSize();
+            window.addEventListener('resize', updateCanvasSize);
+            
+            // Variables
+            let isTracking = false;
+            let lastPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            let smoothingFactor = 0.3;
+            let pinchThreshold = 0.08;
+            
+            // Calibration variables
+            let isCalibrating = false;
+            let calibrationStage = 0;
+            const calibrationPoints = [];
+            
+            // Pinch detection variables
+            let lastPinchState = false;
+            let isPinching = false;
+            let clickStartTime = 0;
+            let clickCooldown = false;
+            
+            // Initialize MediaPipe Hands
+            const hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
+            });
+            
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults(processResults);
+            
+            // Initialize camera
+            const camera = new Camera(video, {
+                onFrame: async () => {
+                    await hands.send({image: video});
+                },
+                width: 640,
+                height: 480
+            });
+            
+            // Start button event listener
+            startButton.addEventListener('click', function() {
+                if (!isTracking) {
+                    startTracking();
+                } else {
+                    stopTracking();
+                }
+            });
+            
+            // Calibrate button event listener
+            calibrateButton.addEventListener('click', function() {
+                if (isTracking && !isCalibrating) {
+                    startCalibration();
+                } else if (isCalibrating) {
+                    stopCalibration();
+                } else {
+                    statusMessage.textContent = "Please start the camera first.";
+                }
+            });
+            
+            // Settings sliders
+            smoothingSlider.addEventListener('input', function() {
+                smoothingFactor = this.value / 10;
+                smoothingValue.textContent = smoothingFactor.toFixed(1);
+            });
+            
+            pinchSlider.addEventListener('input', function() {
+                pinchThreshold = this.value / 100;
+                pinchValue.textContent = pinchThreshold.toFixed(2);
+            });
+            
+            // Initialize slider values
+            smoothingValue.textContent = (smoothingSlider.value / 10).toFixed(1);
+            pinchValue.textContent = (pinchSlider.value / 100).toFixed(2);
+            
+            function startTracking() {
+                camera.start()
+                    .then(() => {
+                        isTracking = true;
+                        statusTitle.textContent = "Status: Active";
+                        statusMessage.textContent = "Move your index finger to control the cursor. Pinch to click.";
+                        startButton.textContent = "Stop Camera";
+                        debugElement.textContent = "Waiting for hand detection...";
+                        cursor.style.display = "block";
+                    })
+                    .catch(error => {
+                        console.error('Error starting camera:', error);
+                        statusTitle.textContent = "Status: Error";
+                        statusMessage.textContent = `Could not access camera: ${error.message}`;
+                    });
+            }
+            
+            function stopTracking() {
+                camera.stop();
+                isTracking = false;
+                statusTitle.textContent = "Status: Stopped";
+                statusMessage.textContent = "Camera tracking has been stopped.";
+                startButton.textContent = "Start Camera";
+                debugElement.textContent = "No hand detected yet";
+                cursor.style.display = "none";
+                
+                if (isCalibrating) {
+                    stopCalibration();
+                }
+            }
+            
+            function startCalibration() {
+                isCalibrating = true;
+                calibrationStage = 0;
+                calibrationPoints.length = 0;
+                calibrateButton.textContent = "Cancel Calibration";
+                statusMessage.textContent = "Move your hand to the top-left corner and pinch";
+            }
+            
+            function stopCalibration() {
+                isCalibrating = false;
+                calibrateButton.textContent = "Calibrate";
+                statusMessage.textContent = "Calibration canceled. Continue using the virtual mouse.";
+            }
+            
+            function processCalibration(x, y, isPinching) {
+                if (!isCalibrating) return;
+                
+                if (isPinching && !lastPinchState) {
+                    // Pinch started during calibration
+                    calibrationPoints.push({ x, y });
+                    calibrationStage++;
+                    
+                    switch (calibrationStage) {
+                        case 1:
+                            statusMessage.textContent = "Now move to the top-right corner and pinch";
+                            break;
+                        case 2:
+                            statusMessage.textContent = "Now move to the bottom-right corner and pinch";
+                            break;
+                        case 3:
+                            statusMessage.textContent = "Finally, move to the bottom-left corner and pinch";
+                            break;
+                        case 4:
+                            // Calibration complete
+                            finishCalibration();
+                            break;
+                    }
+                }
+            }
+            
+            function finishCalibration() {
+                // Here you would use the calibration points to improve cursor mapping
+                // For simplicity, we'll just acknowledge the calibration
+                isCalibrating = false;
+                calibrateButton.textContent = "Calibrate";
+                statusMessage.textContent = "Calibration complete! Your virtual mouse is now optimized.";
+                
+                // Log calibration points for debugging
+                console.log("Calibration points:", calibrationPoints);
+            }
+            
+            function processResults(results) {
+                // Clear the canvas and draw the video frame
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Reset gesture indicators
+                moveGesture.classList.remove('gesture-active');
+                clickGesture.classList.remove('gesture-active');
+                cursor.classList.remove('clicking');
+                
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    // Get the first hand
+                    const hand = results.multiHandLandmarks[0];
+                    
+                    // Draw hand landmarks
+                    drawConnectors(ctx, hand, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 5});
+                    drawLandmarks(ctx, hand, {color: '#FF0000', lineWidth: 2});
+                    
+                    // Get index finger tip (landmark 8) and thumb tip (landmark 4)
+                    const indexTip = hand[8];
+                    const thumbTip = hand[4];
+                    
+                    // Calculate screen coordinates for cursor
+                    // Map from 0-1 range to screen coordinates
+                    const cursorX = indexTip.x * window.innerWidth;
+                    const cursorY = indexTip.y * window.innerHeight;
+                    
+                    // Update cursor position with smooth movement
+                    updateCursorPosition(cursorX, cursorY);
+                    
+                    // Activate move gesture indicator
+                    moveGesture.classList.add('gesture-active');
+                    
+                    // Calculate distance between thumb and index finger for pinch detection
+                    const pinchDistance = calculateDistance(
+                        indexTip.x, indexTip.y,
+                        thumbTip.x, thumbTip.y
+                    );
+                    
+                    // Detect pinch gesture
+                    const isPinchingNow = pinchDistance < pinchThreshold;
+                    
+                    // Use for calibration if needed
+                    if (isCalibrating) {
+                        processCalibration(cursorX, cursorY, isPinchingNow);
+                    }
+                    
+                    // Detect pinch state change (for click events)
+                    if (isPinchingNow && !lastPinchState) {
+                        // Pinch started - prepare for click
+                        isPinching = true;
+                        clickStartTime = Date.now();
+                        cursor.classList.add('clicking');
+                        clickGesture.classList.add('gesture-active');
+                    } else if (!isPinchingNow && lastPinchState && isPinching) {
+                        // Pinch ended - execute click if not on cooldown
+                        if (!clickCooldown) {
+                            handleClick(lastPosition.x, lastPosition.y);
+                            
+                            // Add cooldown to prevent multiple rapid clicks
+                            clickCooldown = true;
+                            setTimeout(() => {
+                                clickCooldown = false;
+                            }, 300);
+                        }
+                        isPinching = false;
+                    }
+                    
+                    // If still pinching, keep the click gesture active
+                    if (isPinchingNow) {
+                        clickGesture.classList.add('gesture-active');
+                        cursor.classList.add('clicking');
+                    }
+                    
+                    // Update pinch state
+                    lastPinchState = isPinchingNow;
+                    
+                    // Update debug info
+                    debugElement.textContent = `Hand detected! Position: (${Math.round(cursorX)}, ${Math.round(cursorY)})
+Pinch distance: ${pinchDistance.toFixed(3)} (Threshold: ${pinchThreshold})
+${isPinchingNow ? "PINCHING - Ready to click!" : "Not pinching"}`;
+                } else {
+                    debugElement.textContent = "No hand detected. Make sure your hand is visible to the camera.";
+                }
+            }
+            
+            function calculateDistance(x1, y1, x2, y2) {
+                return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            }
+            
+            function updateCursorPosition(x, y) {
+                // Apply smoothing
+                const smoothX = lastPosition.x + smoothingFactor * (x - lastPosition.x);
+                const smoothY = lastPosition.y + smoothingFactor * (y - lastPosition.y);
+                
+                // Update cursor position
+                cursor.style.left = `${smoothX}px`;
+                cursor.style.top = `${smoothY}px`;
+                
+                // Update last position
+                lastPosition.x = smoothX;
+                lastPosition.y = smoothY;
+            }
+            
+            function handleClick(x, y) {
+                // Check if click is in bounds of any test button
+                let clickHandled = false;
+                
+                testButtons.forEach(button => {
+                    const rect = button.getBoundingClientRect();
+                    
+                    if (x >= rect.left && x <= rect.right && 
+                        y >= rect.top && y <= rect.bottom) {
+                        // Click is inside the button
+                        clickHandled = true;
+                        
+                        // Visual feedback for test buttons
+                        if (button.id === 'button1' || button.id === 'button2') {
+                            button.classList.add('clicked');
+                            setTimeout(() => {
+                                button.classList.remove('clicked');
+                            }, 500);
+                        } else {
+                            // Animated scale effect for colorful buttons
+                            button.style.transform = 'scale(0.95)';
+                            setTimeout(() => {
+                                button.style.transform = '';
+                            }, 200);
+                        }
+                        
+                        // Debug message
+                        debugElement.textContent = `Clicked on ${button.textContent}!`;
+                    }
+                });
+                
+                // If no button was clicked, simulate a click at that position
+                if (!clickHandled) {
+                    // Create and dispatch a click event
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: x,
+                        clientY: y
+                    });
+                    
+                    // Find element at position
+                    const elementAtPoint = document.elementFromPoint(x, y);
+                    
+                    // If element exists at that point, dispatch the click event
+                    if (elementAtPoint && elementAtPoint !== cursor) {
+                        elementAtPoint.dispatchEvent(clickEvent);
+                        debugElement.textContent = `Clicked on ${elementAtPoint.tagName} element`;
+                    }
+                }
+            }
+            
+            // Initialize cursor style
+            cursor.style.display = "none"; // Hide cursor initially until tracking starts
+        });
+    </script>
+</body>
+</html>
