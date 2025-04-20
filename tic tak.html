@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <!-- Import confetti library in the head -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            animation: titleAnimation 1.2s ease-out;
+        }
+        @keyframes titleAnimation {
+            0% { opacity: 0; transform: translateY(-30px); }
+            70% { transform: translateY(5px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 10px;
+            margin: 20px auto;
+            width: 320px;
+            animation: boardAppear 1s ease-out;
+        }
+        @keyframes boardAppear {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2em;
+            font-weight: bold;
+            background: white;
+            cursor: pointer;
+            border: 3px solid #3498db;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .cell:hover {
+            background: #f0f8ff;
+            transform: scale(1.05);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+        }
+        .cell.x {
+            color: #e74c3c;
+        }
+        .cell.o {
+            color: #3498db;
+        }
+        .cell.x::before, .cell.x::after {
+            position: absolute;
+            content: '';
+            background: #e74c3c;
+        }
+        .cell.x::before {
+            width: 15%;
+            height: 70%;
+            animation: xBeforeAnimation 0.3s forwards;
+        }
+        .cell.x::after {
+            height: 15%;
+            width: 70%;
+            animation: xAfterAnimation 0.3s forwards;
+        }
+        @keyframes xBeforeAnimation {
+            from { height: 0; top: 50%; }
+            to { height: 70%; top: 15%; transform: rotate(45deg); }
+        }
+        @keyframes xAfterAnimation {
+            from { width: 0; left: 50%; }
+            to { width: 70%; left: 15%; transform: rotate(45deg); }
+        }
+        .cell.o::before {
+            content: '';
+            position: absolute;
+            border: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60%;
+            height: 60%;
+            animation: oAnimation 0.4s forwards;
+        }
+        @keyframes oAnimation {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .reset {
+            margin-top: 30px;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(to right, #28a745, #20c997);
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: buttonAppear 1.5s ease-out;
+        }
+        @keyframes buttonAppear {
+            0% { opacity: 0; transform: translateY(20px); }
+            70% { opacity: 0; }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .reset:hover {
+            background: linear-gradient(to right, #218838, #1aa179);
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .reset:active {
+            transform: scale(0.98) translateY(0);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .status {
+            margin-top: 20px;
+            font-size: 1.2em;
+            height: 30px;
+            color: #2c3e50;
+            font-weight: 500;
+            animation: statusAppear 2s ease-out;
+        }
+        @keyframes statusAppear {
+            0% { opacity: 0; }
+            60% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        /* Winner modal */
+        .win-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: white;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .win-modal.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .win-message {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .close-modal {
+            padding: 12px 28px;
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .close-modal:hover {
+            background: linear-gradient(to right, #2980b9, #2471a3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .close-modal:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            backdrop-filter: blur(2px);
+        }
+        .overlay.active {
+            opacity: 1;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .win-pulse {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic-Tac-Toe</h1>
+        <div class="board" id="board"></div>
+        <div class="status" id="status"></div>
+        <button class="reset" onclick="resetGame()">Reset Game</button>
+    </div>
+    
+    <div id="confetti-container"></div>
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="win-modal" id="winModal">
+        <div class="win-message" id="winMessage"></div>
+        <button class="close-modal" onclick="closeModal()">Play Again</button>
+    </div>
+    
+    <script>
+        // Check if confetti is loaded
+        if (typeof confetti === 'undefined') {
+            // Fallback: load confetti if it wasn't loaded in the head
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+            script.async = true;
+            document.body.appendChild(script);
+        }
+
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        const boardElement = document.getElementById("board");
+        const statusElement = document.getElementById("status");
+        const winModal = document.getElementById("winModal");
+        const winMessage = document.getElementById("winMessage");
+        const overlay = document.getElementById("overlay");
+
+        // Initialize the game
+        function initGame() {
+            renderBoard();
+            updateStatus();
+        }
+
+        // Render the game board
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            board.forEach((cell, index) => {
+                const cellElement = document.createElement("div");
+                cellElement.classList.add("cell");
+                
+                // Add animation class with a delay based on index for staggered appearance
+                cellElement.style.animation = `boardAppear 0.5s ease-out ${index * 0.05}s both`;
+                
+                if (cell === 'X') cellElement.classList.add("x");
+                if (cell === 'O') cellElement.classList.add("o");
+                
+                // Don't set text content as we'll use pseudo-elements for X and O
+                if (cell === '') {
+                    cellElement.textContent = '';
+                }
+                
+                cellElement.addEventListener("click", () => makeMove(index));
+                boardElement.appendChild(cellElement);
+            });
+        }
+
+        // Update the status message
+        function updateStatus() {
+            statusElement.textContent = gameActive 
+                ? `Player ${currentPlayer}'s turn` 
+                : '';
+                
+            // Add a subtle pulse animation to indicate whose turn it is
+            if (gameActive) {
+                statusElement.style.animation = 'pulse 2s infinite';
+            } else {
+                statusElement.style.animation = 'none';
+            }
+        }
+
+        // Handle a player's move
+        function makeMove(index) {
+            // Do nothing if game is not active or cell is already filled
+            if (!gameActive || board[index] !== '') return;
+            
+            // Update the board with the current player's mark
+            board[index] = currentPlayer;
+            
+            // Get the cell element
+            const cellElement = boardElement.children[index];
+            
+            // Add the appropriate class with animation
+            if (currentPlayer === 'X') {
+                cellElement.classList.add('x');
+            } else {
+                cellElement.classList.add('o');
+            }
+            
+            // Check if current move resulted in a win
+            if (checkWinner()) {
+                gameActive = false;
+                setTimeout(() => {
+                    celebrateWin();
+                }, 500); // Delay to allow the mark animation to complete
+                return;
+            }
+            
+            // Check if game ended in a draw
+            if (checkDraw()) {
+                gameActive = false;
+                setTimeout(() => {
+                    showDrawMessage();
+                }, 500); // Delay to allow the mark animation to complete
+                return;
+            }
+            
+            // Switch to the next player and update the UI
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateStatus();
+        }
+
+        // Check if the current player has won
+        function checkWinner() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],  // horizontal
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],  // vertical
+                [0, 4, 8], [2, 4, 6]              // diagonal
+            ];
+            
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    // Highlight the winning cells
+                    setTimeout(() => {
+                        highlightWinningCells(pattern);
+                    }, 200);
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        // Highlight the winning cells
+        function highlightWinningCells(pattern) {
+            pattern.forEach(index => {
+                const cell = boardElement.children[index];
+                cell.style.backgroundColor = currentPlayer === 'X' ? 'rgba(231, 76, 60, 0.2)' : 'rgba(52, 152, 219, 0.2)';
+                cell.style.boxShadow = currentPlayer === 'X' ? 
+                    '0 0 15px rgba(231, 76, 60, 0.5)' : 
+                    '0 0 15px rgba(52, 152, 219, 0.5)';
+                
+                // Add pulsing animation to winning cells
+                cell.classList.add('win-pulse');
+            });
+        }
+
+        // Check if the game ended in a draw
+        function checkDraw() {
+            return !board.includes('');
+        }
+
+        // Safe confetti function that checks if the library is loaded
+        function fireConfetti(options) {
+            if (typeof confetti !== 'undefined') {
+                confetti(options);
+            }
+        }
+
+        // Celebrate when a player wins
+        function celebrateWin() {
+            // Show overlay with animation
+            overlay.style.display = "block";
+            setTimeout(() => {
+                overlay.classList.add('active');
+            }, 10);
+            
+            // Show modal with animation
+            winModal.style.display = "block";
+            setTimeout(() => {
+                winModal.classList.add('active');
+            }, 200);
+            
+            // Set winner message with winning player's color
+            winMessage.textContent = `Player ${currentPlayer} wins!`;
+            winMessage.style.color = currentPlayer === 'X' ? '#e74c3c' : '#3498db';
+            
+            // Only run confetti if it's available
+            if (typeof confetti !== 'undefined') {
+                const duration = 4 * 1000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { 
+                    startVelocity: 30, 
+                    spread: 360, 
+                    ticks: 60, 
+                    zIndex: 1001,
+                    shapes: ['square', 'circle'],
+                    colors: currentPlayer === 'X' ? 
+                        ['#e74c3c', '#c0392b', '#f39c12', '#e67e22'] : 
+                        ['#3498db', '#2980b9', '#1abc9c', '#16a085']
+                };
+
+                function randomInRange(min, max) {
+                    return Math.random() * (max - min) + min;
+                }
+
+                const interval = setInterval(function() {
+                    const timeLeft = animationEnd - Date.now();
+
+                    if (timeLeft <= 0) {
+                        return clearInterval(interval);
+                    }
+
+                    const particleCount = 50 * (timeLeft / duration);
+                    
+                    // Use confetti from multiple origins for a fuller effect
+                    fireConfetti(Object.assign({}, defaults, { 
+                        particleCount, 
+                        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
+                    }));
+                    
+                    fireConfetti(Object.assign({}, defaults, { 
+                        particleCount, 
+                        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
+                    }));
+                    
+                    fireConfetti(Object.assign({}, defaults, { 
+                        particleCount, 
+                        origin: { x: 0.5, y: Math.random() - 0.2 } 
+                    }));
+                }, 250);
+            }
+        }
+
+        // Show message when game ends in a draw
+        function showDrawMessage() {
+            // Show overlay with animation
+            overlay.style.display = "block";
+            setTimeout(() => {
+                overlay.classList.add('active');
+            }, 10);
+            
+            // Show modal with animation
+            winModal.style.display = "block";
+            setTimeout(() => {
+                winModal.classList.add('active');
+            }, 200);
+            
+            winMessage.textContent = "It's a draw!";
+            winMessage.style.color = '#2c3e50';
+        }
+
+        // Close the winner modal and reset the game
+        function closeModal() {
+            // Hide modal with animation
+            winModal.classList.remove('active');
+            overlay.classList.remove('active');
+            
+            setTimeout(() => {
+                winModal.style.display = "none";
+                overlay.style.display = "none";
+                resetGame();
+            }, 500);
+        }
+
+        // Reset the game to initial state
+        function resetGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            
+            // Remove any winning cell highlights
+            const cells = boardElement.children;
+            for (let i = 0; i < cells.length; i++) {
+                cells[i].style.backgroundColor = '';
+                cells[i].style.boxShadow = '';
+                cells[i].classList.remove('win-pulse');
+            }
+            
+            renderBoard();
+            updateStatus();
+        }
+
+        // Initialize the game when page loads
+        initGame();
+    </script>
+</body>
+</html>
